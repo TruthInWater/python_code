@@ -1,0 +1,50 @@
+import plotly.plotly as py
+import plotly.graph_objs as go
+import plotly.offline as of
+from plotly import tools
+from datetime import datetime
+import requests
+import pandas as pd
+from pandas import DataFrame
+
+
+class get_k:
+	def __init__(self,variety,period):
+		self.variety=variety
+		self.period=period
+	def get_candlestick(self):
+			str_url='http://stock2.finance.sina.com.cn/futures/api/json.php/IndexService.getInnerFuturesMiniKLine'+self.period+'m?symbol='+self.variety
+			result = requests.get(str_url)
+			l_json = result.json()
+			l_list = list(l_json)[::-1]
+
+			open_data=[i[1] for i in l_list]
+			high_data = [i[2] for i in l_list]
+			low_data = [i[3] for i in l_list]
+			close_data = [i[4] for i in l_list]
+			dates = [i[0] for i in l_list]
+
+			trace = go.Candlestick(name=self.period+'分钟',
+                       open=open_data,
+                       high=high_data,
+                       low=low_data,
+                       close=close_data,
+                       increasing=dict(line=dict(color="#FF4136")),
+                       decreasing=dict(line=dict(color="#3D9970")))
+                       
+			df=DataFrame(l_list,columns=["date","open", "high", "low","close", "volume"])
+
+			ma5=df["close"].rolling(5).mean()
+			ma20=df["close"].rolling(20).mean()
+			trace1 = go.Scatter(y=ma5,line = dict(color = '#2B2B2B'),name='ma5')
+			trace2 = go.Scatter(y=ma20,line = dict(color = '#EE0000'),name='ma20')
+
+
+			data = [trace,trace1,trace2]
+			of.offline.plot({
+			    "data":data,
+			    "layout": go.Layout(title="AP1901")   
+			}, auto_open=True,filename=self.period+'分钟K线图')
+			
+k=get_k('AP1901','15')
+k.get_candlestick()
